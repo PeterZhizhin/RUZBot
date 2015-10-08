@@ -6,6 +6,8 @@ class Lesson:
     __time_format = "%H:%M"
 
     def __init__(self, json_dict):
+        self.date = datetime.date(*map(int, json_dict['date'].split('.')))
+        self.dayofweek = int(json_dict['dayOfWeek'])
         self.start = json_dict['beginLesson'].split(':')
         self.start = datetime.time(int(self.start[0]), int(self.start[1]))
         self.end = json_dict['endLesson'].split(':')
@@ -46,7 +48,21 @@ class Lesson:
             )
 
     @staticmethod
-    def get_next_lessons(lessons, time):
+    def split_days(lessons):
+        result = []
+        currentDate = None
+        appendingArray = None
         for lesson in lessons:
-            if time < lesson.end:
-                yield lesson
+            if lesson.date != currentDate:
+                currentDate = lesson.date
+                appendingArray = []
+                result.append(appendingArray)
+            appendingArray.append(lesson)
+        return result
+
+    @staticmethod
+    def get_printable_lessons(lessons):
+        if not lessons:
+            return None
+        return "\n---------\n".join(map(str, lessons))
+
