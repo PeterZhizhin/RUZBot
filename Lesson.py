@@ -1,9 +1,12 @@
 import datetime
+import unittest
 
 
-class Lesson:
-    __base_lesson_str = "{}-{}\n{} в {}-м\n{}\n{}"
+class Lesson():
+    __base_lesson_str = "{}-{}\n{}\n{} в аудитории {}\n{}"
+    __window_lesson_str = "Окно {}-{}\nДлительностью {}"
     __time_format = "%H:%M"
+    one_hour_seconds = datetime.timedelta(hours=1)
 
     def __init__(self, json_dict):
         self.date = datetime.date(*map(int, json_dict['date'].split('.')))
@@ -41,10 +44,10 @@ class Lesson:
             return Lesson.__base_lesson_str.format(
                    self.start.strftime(Lesson.__time_format),
                    self.end.strftime(Lesson.__time_format),
+                   self.discipline,
                    self.kindOfWork,
                    self.auditorium,
                    self.lecturer,
-                   self.discipline
             )
 
     @staticmethod
@@ -64,5 +67,69 @@ class Lesson:
     def get_printable_lessons(lessons):
         if not lessons:
             return None
-        return "\n---------\n".join(map(str, lessons))
+        res_list = []
+        for i in range(len(lessons)-1):
+            res_list.append(lessons[i])
+            start = datetime.datetime.combine(datetime.date.today(), lessons[i+1].start)
+            end = datetime.datetime.combine(datetime.date.today(), lessons[i].end)
+            delta = start - end
+            if delta > Lesson.one_hour_seconds:
+                res_list.append(Lesson.__window_lesson_str.format(
+                    lessons[i].end.strftime(Lesson.__time_format),
+                    lessons[i+1].start.strftime(Lesson.__time_format),
+                    str(delta)[:-3]
+                ))
+        res_list.append(lessons[len(lessons)-1])
+
+        return "\n---------\n".join(map(str, res_list))
+
+
+class TestLessons(unittest.TestCase):
+
+    def test_print_lessons(self):
+        from simplejson import loads
+        vals = loads("""[
+    {
+        "auditorium": "401",
+        "auditoriumOid": 253,
+        "beginLesson": "9:00",
+        "building": "М. Трехсвятительский пер., д. 8/2 стр.1",
+        "date": "2015.10.05",
+        "dayOfWeek": 1,
+        "discipline": "Интегрированные коммуникации",
+        "endLesson": "10:30",
+        "group": "МИК151",
+        "groupOid": 4850,
+        "kindOfWork": "Лекция",
+        "lecturer": "Евстафьев Д.Г.",
+        "lecturerOid": 7105,
+        "stream": null,
+        "streamOid": 0,
+        "subGroup": null,
+        "subGroupOid": 0
+    },
+    {
+        "auditorium": "401",
+        "auditoriumOid": 253,
+        "beginLesson": "16:40",
+        "building": "М. Трехсвятительский пер., д. 8/2 стр.1",
+        "date": "2015.10.05",
+        "dayOfWeek": 1,
+        "discipline": "Интегрированные коммуникации",
+        "endLesson": "18:00",
+        "group": "МИК151",
+        "groupOid": 4850,
+        "kindOfWork": "Лекция",
+        "lecturer": "Евстафьев Д.Г.",
+        "lecturerOid": 7105,
+        "stream": null,
+        "streamOid": 0,
+        "subGroup": null,
+        "subGroupOid": 0
+    }
+]        """)
+        lessons = [Lesson(l) for l in vals]
+        res = Lesson.get_printable_lessons(lessons)
+        self.assertIsNotNone(res)
+        print(res)
 

@@ -16,17 +16,17 @@ class User():
     bot = NoneBot()
 
     command_re = re.compile("/([^\s]*) *([^\s].*)?")
-    email_re = re.compile("[A-Za-z0-9]+@edu\.hse\.ru")
+    email_re = re.compile("[A-Za-z_0-9]+@edu\.hse\.ru")
     one_day_delta = datetime.timedelta(days=1)
 
     helloMessage = """Бот Telegram для РУЗ ВШЭ
     Доступные команды:
-    /start -- Напечатать это сообщение.
-    /setemail -- Поменять E-Mail для РУЗ.
-    /getemail -- Вывести текущий E-Mail.
-    /gettoday -- Расписание на сегодня.
-    /getleft -- Оставшиеся сегодня пары
-    /gettmrw -- Расписание на завтра.
+    /start — Напечатать это сообщение.
+    /setemail — Поменять E-Mail для РУЗ.
+    /getemail — Вывести текущий E-Mail.
+    /gettmrw — Расписание на завтра.
+    /gettoday — Расписание на сегодня.
+    /getleft — Оставшиеся сегодня пары.
     """
     wrongCommandMessage = "К сожалению, команда недоступна. Наберите /start для помощи."
     noEmailMessage = "E-Mail ещё не задан. Задайте его командой /setemail"
@@ -40,25 +40,6 @@ class User():
     noWeekLessons = "На неделю занятий нет.\nМожет стоит проверить E-mail?\nТекущий: {}"
     updatingTimetableFromRUZ = "Обновление расписания. Это может занять некоторое время."
 
-    def send_message(self, message):
-        User.bot.sendMessage(chat_id=self.__id, text=message)
-
-    def set_email(self, mail):
-        """
-        :return False Если установка не успешна.
-                True Если успешна.
-        """
-        User.logger.info("Setting mail for {}".format(self.__username))
-        if mail is None or User.email_re.match(mail.strip()) is None:
-            self.__wrong_email()
-            return False
-        UserData.set_email(self.__id, mail)
-        User.bot.sendMessage(chat_id=self.__id,
-                             text=User.mailChangedMessage.format(mail))
-        self.__email = mail
-        self.__get_timetable(force=True)
-        return True
-
     def __get_timetable(self, force=False, need_notification=False):
         """
         Безопасное получение расписания.
@@ -70,7 +51,7 @@ class User():
             self.__next_update_needed = datetime.datetime.now() + User.one_day_delta
             self.__assert_if_none_mail()
             if self.__email is None:
-                return None
+                return
             if need_notification:
                 User.bot.sendMessage(chat_id=self.__id, text=User.updatingTimetableFromRUZ)
             self.__timetable = RUZPython.get_week_timetable(self.__email, self.__last_update_time)
@@ -101,12 +82,15 @@ class User():
                              text=lessons if lessons else no_lessons_message)
 
     def __get_today(self, params=None):
+        User.logger.info("User {} getting today lessons".format(self.__username))
         self.__print_lessons(self.__get_today_lessons(), no_lessons_message=User.noLessonsMessage)
 
     def __get_tomorrow(self, params=None):
+        User.logger.info("User {} getting tomorrow lessons".format(self.__username))
         self.__print_lessons(self.__get_tomorrow_lessons(), no_lessons_message=User.noLessonsTomorrow)
 
     def __get_left(self, params=None):
+        User.logger.info("User {} getting left lessons".format(self.__username))
         lessons = self.__get_today_lessons()
         if lessons is not None:
             lessons = [lesson for lesson in self.__get_today_lessons() if
@@ -133,8 +117,8 @@ class User():
             User.bot.sendMessage(chat_id=self.__id,
                                  text=User.yourEmailMessage.format(self.__email))
 
-    def __wrong_email(self):
-        User.logger.info("Mail for {} is wrong".format(self.__username))
+    def __wrong_email(self, mail):
+        User.logger.info("Mail {} for {} is wrong".format(mail, self.__username))
         User.bot.sendMessage(chat_id=self.__id, text=User.wrongEmailMessage)
 
     def __email_help(self):
@@ -152,7 +136,7 @@ class User():
             return
 
         if User.email_re.match(params.strip()) is None:
-            self.__wrong_email()
+            self.__wrong_email(params.strip())
             return
         mail = params.strip()
         UserData.set_email(self.__id, mail)

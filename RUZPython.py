@@ -7,7 +7,7 @@ import BotLogic
 logger = logging.getLogger("RUZPython")
 __base_URL = "http://ruz.hse.ru/RUZService.svc/personlessons?fromdate={}&todate={}&email={}"
 __date_format = "%Y.%m.%d"
-got_wrong_from_ruz = "Got not a lesson from ruz"
+got_wrong_from_ruz = "Got not a lesson from ruz\n"
 
 def init():
     logger.info("Initializing HTTP socket for RUZ")
@@ -34,8 +34,9 @@ def get_timetable(email, start, end):
     try:
         return Lesson.split_days(Lesson(lesson) for lesson in json)
     except:
-        logger.error("Got none from RUZ. Got: "+dumps(json, indent=' '*4, sort_keys=True))
-        BotLogic.send_admin_alert(got_wrong_from_ruz)
+        log = dumps(json, indent=' '*4, sort_keys=True, ensure_ascii=False)
+        logger.error("Got none from RUZ. Got: "+log)
+        BotLogic.send_admin_alert(got_wrong_from_ruz+log)
         return None
 
 
