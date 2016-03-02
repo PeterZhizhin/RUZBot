@@ -2,6 +2,7 @@ import telegram
 import UserData
 from User import User
 import logging
+import config
 logger = logging.getLogger("BotLogic")
 # Server token
 # token = "134496856:AAEJKACPo9RYAiZd5Q_GtXE9NGEDx5-e84o"
